@@ -1,4 +1,4 @@
-## A very simple, header only C++ wrapper for [cURL](https://curl.haxx.se/)
+## A very simple, header only, asynchronous C++ wrapper for [cURL](https://curl.haxx.se/)
 
 Example usage would be:
 ```cpp

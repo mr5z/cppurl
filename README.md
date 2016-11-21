@@ -1,4 +1,4 @@
-# H1 A very simple, header only C++ wrapper for cURL https://curl.haxx.se/
+# H2 A very simple, header only C++ wrapper for [cURL](https://curl.haxx.se/)
 
 Example usage would be:
 ```cpp

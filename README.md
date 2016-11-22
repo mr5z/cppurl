@@ -1,6 +1,6 @@
 ## A very simple, header only, asynchronous C++ wrapper for [cURL](https://curl.haxx.se/)
 
-Example usage would be:
+An example usage would be:
 ```cpp
 #include <iostream>
 #include "http.hpp"

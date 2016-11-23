@@ -41,6 +41,13 @@ public:
 		}).detach();
 	}
 
+	void post(const std::string &url, ResponseCallback callback) {
+		std::thread([this, callback] {
+			CURLcode res = curl_easy_perform(handle);
+			callback(res, response);
+		}).detach();
+	}
+
 private:
 	static size_t writeCallback(void *contents, size_t size, size_t nmemb, std::string *data) {
 		data->append((char*)contents, size * nmemb);

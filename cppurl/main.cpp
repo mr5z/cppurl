@@ -21,22 +21,54 @@
 
 int main(int argc, char* argv[]) {
 
-	Http http1, http2;
+	CppUrl http1, http2;
 
-	http1.get("http://smokedetector.esy.es/api/update-alerts.php?alertIds=123123,123123", 
-		[](CURLcode code, const std::string &response) {
-		std::cout << "CURLcode: " << code << ", (update alerts)response: " << response << std::endl;
-	});
+	std::thread([&http1, &http2] {
 
-	std::map<std::string, std::string> files;
+		http1.get("http://smokedetector.esy.es/api/update-alerts.php?alertIds=123123,123123",
+			[](CURLcode code, const std::string &response) {
+			std::cout << "1. CURLcode: " << code << ", (update alerts)response: " << response << std::endl;
+		}).async();
+		http2.get("http://smokedetector.esy.es/api/update-alerts.php?alertIds=123123,123123",
+			[](CURLcode code, const std::string &response) {
+			std::cout << "2. CURLcode: " << code << ", (update alerts)response: " << response << std::endl;
+		}).async();
+		http1.get("http://smokedetector.esy.es/api/update-alerts.php?alertIds=123123,123123",
+			[](CURLcode code, const std::string &response) {
+			std::cout << "3. CURLcode: " << code << ", (update alerts)response: " << response << std::endl;
+		}).async();
+		http1.get("http://smokedetector.esy.es/api/update-alerts.php?alertIds=123123,123123",
+			[](CURLcode code, const std::string &response) {
+			std::cout << "4. CURLcode: " << code << ", (update alerts)response: " << response << std::endl;
+		}).async();
+		http1.get("http://smokedetector.esy.es/api/update-alerts.php?alertIds=123123,123123",
+			[](CURLcode code, const std::string &response) {
+			std::cout << "5. CURLcode: " << code << ", (update alerts)response: " << response << std::endl;
+		}).async();
+		http1.get("http://smokedetector.esy.es/api/update-alerts.php?alertIds=123123,123123",
+			[](CURLcode code, const std::string &response) {
+			std::cout << "6. CURLcode: " << code << ", (update alerts)response: " << response << std::endl;
+		}).async();
+		http1.get("http://smokedetector.esy.es/api/update-alerts.php?alertIds=123123,123123",
+			[](CURLcode code, const std::string &response) {
+			std::cout << "7. CURLcode: " << code << ", (update alerts)response: " << response << std::endl;
+		}).async();
+		http2.get("http://smokedetector.esy.es/api/update-alerts.php?alertIds=123123,123123",
+			[](CURLcode code, const std::string &response) {
+			std::cout << "8. CURLcode: " << code << ", (update alerts)response: " << response << std::endl;
+		}).async();
 
-	files["image1"] = "C:\\Users\\mr5\\Desktop\\image.png";
-	files["image2"] = "C:\\Users\\mr5\\Desktop\\plant1.jpg";
+		//std::map<std::string, std::string> files;
 
-	http2.post("http://smokedetector.esy.es/api/insert-image.php", files,
-		[](CURLcode code, const std::string &response) {
-		std::cout << "CURLcode: " << code << ", (insert alerts)response: " << response << std::endl;
-	});
+		//files["image1"] = "C:\\Users\\mr5\\Desktop\\baby.jpg";
+		//files["image2"] = "C:\\Users\\mr5\\Desktop\\baby2.jpg";
+
+		//http2.post("http://smokedetector.esy.es/api/insert-alert.php", files,
+		//	[](CURLcode code, const std::string &response) {
+		//	std::cout << "CURLcode: " << code << ", (insert alerts)response: " << response << std::endl;
+		//}).async();
+
+	}).join();
 
 	std::cout << "hey";
 

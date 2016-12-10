@@ -1,4 +1,3 @@
-#include <sys/stat.h>
 #include <curl/curl.h>
 #include <string>
 #include <thread>
@@ -30,7 +29,8 @@ public:
 		}
 	}
 
-	CppUrl(const CppUrl& other) = delete;
+	CppUrl(const CppUrl&) = delete;
+	CppUrl& operator= (CppUrl const&);
 
 	~CppUrl() {
 		curlInstanceCount--;
@@ -126,8 +126,8 @@ public:
 	}
 
 private:
-	static size_t writeCallback(void *contents, size_t size, size_t nmemb, std::string *data) {
-		data->append((char*)contents, size * nmemb);
+	static size_t writeCallback(char *contents, size_t size, size_t nmemb, std::string *data) {
+		data->append(contents, size * nmemb);
 		return size * nmemb;
 	}
 

@@ -3,7 +3,7 @@
 An example usage would be:
 ```cpp
 #include <iostream>
-#include "http.hpp"
+#include "cppurl.hpp"
 
 int main(int argc, char* argv[]) {
 

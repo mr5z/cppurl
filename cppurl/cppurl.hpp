@@ -7,40 +7,37 @@
 #include <stdexcept>
 #include <map>
 #include <exception>
+#include <atomic>
 
 class CppUrl {
     using ResponseCallback = std::function<void(CURLcode, const std::string&)>;
 public:
 
-    class MissingHttpMethodException : std::exception {
+    class MissingHttpMethodException : public std::exception {
     public:
-        std::string what() {
+        virtual const char* what() const override {
             return "No HTTP method used";
         }
     };
 
     CppUrl() : task(nullptr) {
-        if (curlInstanceCount == 0) {
+        static std::once_flag curlInitialized;
+        std::call_once(curlInitialized, [] {
             curl_global_init(CURL_GLOBAL_ALL);
-        }
+            std::atexit([] {
+                curl_global_cleanup();
+            });
+        });
         handle = curl_easy_init();
-        if (handle) {
-            curlInstanceCount++;
-        }
     }
 
     CppUrl(const CppUrl&) = delete;
-    CppUrl& operator= (CppUrl const&);
+    CppUrl& operator= (CppUrl const&) = delete;
 
     ~CppUrl() {
-        curlInstanceCount--;
         curl_easy_cleanup(handle);
         cleanTask();
         handle = nullptr;
-        // <= incase the value fluctuates
-        if (curlInstanceCount <= 0) {
-            curl_global_cleanup();
-        }
     }
 
     /**
@@ -48,20 +45,11 @@ public:
      * @param const std::string &url URL to be requested
      * @param callback(CURLcode code, const std::string &response) response callback invoked from other thread
      */
-    CppUrl &get(const std::string &url, ResponseCallback callback) {
+    CppUrl& get(const std::string &url, ResponseCallback callback) {
         waitTask();
+        this->callback = callback;
         initRequest(url);
         cleanTask();
-        task = new std::thread([this, callback] {
-            if (handle != nullptr) {
-                CURLcode res = curl_easy_perform(handle);
-                callback(res, response);
-            }
-            else {
-                // we assume that the request has been cancelled
-            }
-            this->busy = false;
-        });
         return *this;
     }
 
@@ -71,58 +59,28 @@ public:
     * @param std::map<std::string, std::string> files: list of pair of file name and file path
     * @param callback(CURLcode code, const std::string &response): response callback invoked from other thread
     */
-    CppUrl &post(const std::string &url, std::map<std::string, std::string> files, ResponseCallback callback) {
+    CppUrl& post(const std::string &url, std::map<std::string, std::string> files, ResponseCallback callback) {
         waitTask();
-        curl_httppost *formpost = nullptr;
-        curl_httppost *lastptr = nullptr;
-        curl_slist *headerlist = nullptr;
-
-        for (auto &i : files) {
-            curl_formadd(&formpost,
-                &lastptr,
-                CURLFORM_COPYNAME, i.first.c_str(),
-                CURLFORM_FILE, i.second.c_str(),
-                CURLFORM_END);
-        }
-
-        headerlist = curl_slist_append(headerlist, "Content-Type: multipart/form-data");
+        this->callback = callback;
+        setupPostHeader(files);
         initRequest(url);
         curl_easy_setopt(handle, CURLOPT_HTTPPOST, formpost);
         cleanTask();
-        task = new std::thread([this, formpost, headerlist, callback] {
-            if (handle != nullptr) {
-                CURLcode res = curl_easy_perform(handle);
-                callback(res, response);
-            }
-            else {
-                // we assume that the request has been cancelled
-            }
-            curl_formfree(formpost);
-            curl_slist_free_all(headerlist);
-            this->busy = false;
-        });
-
         return *this;
     }
 
     void execute() {
-        if (task == nullptr) {
-            throw MissingHttpMethodException();
-        }
-        busy = true;
-        task->join();
+        fireTask();
     }
 
     void async() {
-        if (task == nullptr) {
-            throw MissingHttpMethodException();
-        }
-        busy = true;
-        task->detach();
+        task = new std::thread([this] {
+            this->fireTask();
+        });
     }
 
     bool isBusy() {
-        return busy;
+        return busy.load();
     }
 
 private:
@@ -139,23 +97,48 @@ private:
         curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
     }
 
+    void setupPostHeader(std::map<std::string, std::string> files) {
+        curl_httppost *lastptr = nullptr;
+        formpost = nullptr;
+        headerlist = nullptr;
+        for (auto &i : files) {
+            curl_formadd(&formpost,
+                &lastptr,
+                CURLFORM_COPYNAME, i.first.c_str(),
+                CURLFORM_FILE, i.second.c_str(),
+                CURLFORM_END);
+        }
+        headerlist = curl_slist_append(headerlist, "Content-Type: multipart/form-data");
+    }
+
     void waitTask() {
-        while (busy) {}
+        while (busy.load()) {}
     }
 
     void cleanTask() {
         if (task != nullptr) {
+            task->join(); // wait for it
             delete task;
             task = nullptr;
         }
+    }
+
+    void fireTask() {
+        busy.store(true);
+        CURLcode res = curl_easy_perform(handle);
+        this->callback(res, this->response);
+        curl_formfree(formpost);
+        curl_slist_free_all(headerlist);
+        busy.store(false);
     }
 
 private:
     CURL *handle;
     std::thread *task;
     std::string response;
-    bool busy;
-    static int curlInstanceCount;
-};
+    std::atomic<bool> busy;
 
-int CppUrl::curlInstanceCount = 0;
+    curl_httppost *formpost;
+    curl_slist *headerlist;
+    ResponseCallback callback;
+};

@@ -7,9 +7,9 @@ An example usage would be:
 
 int main(int argc, char* argv[]) {
 
-	Http http1, http2;
+	CppUrl httpClient1, httpClient2;
 
-	http1.get("http://smokedetector.esy.es/api/update-alerts.php?alertIds=123123,123123", 
+	httpClient1.get("http://smokedetector.esy.es/api/update-alerts.php?alertIds=123123,123123", 
 		[](CURLcode code, const std::string &response) {
 		std::cout << "CURLcode: " << code << ", (update alerts)response: " << response << std::endl;
 	}).async();
@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 	files["image1"] = "C:\\Users\\mr5\\Desktop\\image.png";
 	files["image2"] = "C:\\Users\\mr5\\Desktop\\plant1.jpg";
 
-	http2.post("http://smokedetector.esy.es/api/insert-image.php", files,
+	httpClient2.post("http://smokedetector.esy.es/api/insert-image.php", files,
 		[](CURLcode code, const std::string &response) {
 		std::cout << "CURLcode: " << code << ", (insert alerts)response: " << response << std::endl;
 	}).execute();
